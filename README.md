@@ -16,10 +16,13 @@ The current snapshot from Sua is this one:
     Author: Joao Pedrosa [...]
     Date:   Fri Jan 22 23:35:52 2016 -0300
 
-Another dependency is the CNCURSES library from here:
-https://github.com/iachievedit/CNCURSES
+Another dependency is the CNC library from here:
+https://github.com/jpedrosa/cnc_module
 
-It is a straightforward NCurses header mapping library.
+It is a straightforward NCurses header mapping library that links to the Unicode
+version of NCurses. It includes this dependency:
+
+    sudo apt-get install libncursesw5-dev
 
 -------------------
 
