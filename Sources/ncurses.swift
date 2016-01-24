@@ -40,6 +40,8 @@ public struct TellSize {
   public var expandParentHeight = 0
   public var expandWidthFreely = 0
   public var expandHeightFreely = 0
+  public var element: NCElement?
+  public var children: [TellSize]?
 }
 
 
@@ -59,9 +61,9 @@ public protocol NCElement {
   var expandParentWidth: Bool { get set }
   var expandParentHeight: Bool { get set }
 
-  mutating func tellSize() -> TellSize
+  func tellSize() -> TellSize
 
-  func draw(x: Int, y: Int, width: Int, height: Int)
+  func draw(x: Int, y: Int, size: TellSize)
 }
 
 
@@ -85,11 +87,13 @@ public struct NCRow: NCElement {
 
   public init() { }
 
-  public mutating func tellSize() -> TellSize {
+  public func tellSize() -> TellSize {
     var t = TellSize()
+    t.element = self
+    t.children = []
     for e in children {
-      var me = e
-      let s = me.tellSize()
+      let s = e.tellSize()
+      t.children!.append(s)
       t.width += s.width
       if s.height > t.height {
         t.height = s.height
@@ -112,7 +116,7 @@ public struct NCRow: NCElement {
     return t
   }
 
-  public func draw(x: Int, y: Int, width: Int, height: Int) {
+  public func draw(x: Int, y: Int, size: TellSize) {
 
   }
 
@@ -139,11 +143,13 @@ public struct NCSpan: NCElement {
 
   public init() { }
 
-  public mutating func tellSize() -> TellSize {
+  public func tellSize() -> TellSize {
     var t = TellSize()
+    t.children = []
+    t.element = self
     for e in children {
-      var me = e
-      let s = me.tellSize()
+      let s = e.tellSize()
+      t.children!.append(s)
       t.width += s.width
       if s.height > t.height {
         t.height = s.height
@@ -166,7 +172,7 @@ public struct NCSpan: NCElement {
     return t
   }
 
-  public func draw(x: Int, y: Int, width: Int, height: Int) {
+  public func draw(x: Int, y: Int, size: TellSize) {
 
   }
 
@@ -190,13 +196,13 @@ public struct NCText: NCElement {
   public var expandHeight = false
   public var expandParentWidth = false
   public var expandParentHeight = false
-  public var count = 0
 
   public init() { }
 
-  public mutating func tellSize() -> TellSize {
+  public func tellSize() -> TellSize {
     var t = TellSize()
-    count = text.characters.count
+    t.element = self
+    let count = text.characters.count
     if width > 0 {
       t.width = width
     } else {
@@ -228,7 +234,7 @@ public struct NCText: NCElement {
     return t
   }
 
-  public func draw(x: Int, y: Int, width: Int, height: Int) {
+  public func draw(x: Int, y: Int, size: TellSize) {
 
   }
 
@@ -271,9 +277,11 @@ public struct NCDiv: NCElement {
 
   public func tellSize() -> TellSize {
     var t = TellSize()
+    t.element = self
+    t.children = []
     for e in children {
-      var me = e
-      let s = me.tellSize()
+      let s = e.tellSize()
+      t.children!.append(s)
       if s.width > t.width {
         t.width = s.width
       }
@@ -300,12 +308,29 @@ public struct NCDiv: NCElement {
     return t
   }
 
-  public func draw(x: Int, y: Int, width: Int, height: Int) {
+  public func draw(x: Int, y: Int, size: TellSize) {
     var ny = y
     for r in children {
-      var mr = r
-      NC.pd(inspect(mr.tellSize()))
+      NC.pd(inspect(r.tellSize()))
       //r.draw()
+    }
+  }
+
+  public func mainDraw(x: Int, y: Int, width: Int, height: Int) {
+    var t = tellSize()
+    if t.width <= width && t.height <= height {
+      var ny = y
+      for r in children {
+        let s = r.tellSize()
+        var w = t.width
+        var h = t.height
+        if t.expandWidth > 0 {
+          w = width
+        }
+        // r.draw(x, y: y, width: w, height: )
+        //NC.pd(inspect())
+        //r.draw()
+      }
     }
   }
 
@@ -401,7 +426,7 @@ public class NCImpl {
     clear()
     let w = Int(getmaxx(stdscr))
     let h = Int(getmaxy(stdscr))
-    mainDiv.draw(0, y: 0, width: w, height: h)
+    mainDiv.mainDraw(0, y: 0, width: w, height: h)
     printLogs()
     refresh()
   }
