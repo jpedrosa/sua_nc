@@ -18,6 +18,128 @@ func ncWinchSignalHandler(n: Int32) {
 }
 
 
+public enum NCType {
+  case Div
+  case Span
+}
+
+
+public enum NCBorderType {
+  case LightCurved
+}
+
+
+public protocol NCElement {
+  var maxWidth: Int { get set }
+  var maxHeight: Int { get set }
+  var width: Int { get set }
+  var height: Int { get set }
+  var borderTop: Bool { get set }
+  var borderRight: Bool { get set }
+  var borderBottom: Bool { get set }
+  var borderLeft: Bool { get set }
+  var borderType: NCBorderType { get set }
+  var expandWidth: Bool { get set }
+  var expandHeight: Bool { get set }
+}
+
+
+public extension NCElement { }
+
+
+public struct NCRow: NCElement {
+  public var children = [NCElement]()
+
+  public var maxWidth = -1
+  public var maxHeight = -1
+  public var width = -1
+  public var height = -1
+  public var borderTop = false
+  public var borderRight = false
+  public var borderBottom = false
+  public var borderLeft = false
+  public var borderType = NCBorderType.LightCurved
+  public var expandWidth = true
+  public var expandHeight = false
+
+  public init() { }
+}
+
+
+public struct NCSpan: NCElement {
+  public var type = NCType.Span
+  public var children = [NCElement]()
+
+  public var maxWidth = -1
+  public var maxHeight = -1
+  public var width = -1
+  public var height = -1
+  public var borderTop = false
+  public var borderRight = false
+  public var borderBottom = false
+  public var borderLeft = false
+  public var borderType = NCBorderType.LightCurved
+  public var expandWidth = false
+  public var expandHeight = false
+
+  public init() { }
+}
+
+
+public struct NCText: NCElement {
+  public var text = ""
+
+  public var maxWidth = -1
+  public var maxHeight = -1
+  public var width = -1
+  public var height = -1
+  public var borderTop = false
+  public var borderRight = false
+  public var borderBottom = false
+  public var borderLeft = false
+  public var borderType = NCBorderType.LightCurved
+  public var expandWidth = false
+  public var expandHeight = false
+
+  public init() { }
+}
+
+
+public struct NCDiv: NCElement {
+  public var type = NCType.Div
+  public var children = [NCRow]()
+
+  public var maxWidth = -1
+  public var maxHeight = -1
+  public var width = -1
+  public var height = -1
+  public var borderTop = false
+  public var borderRight = false
+  public var borderBottom = false
+  public var borderLeft = false
+  public var borderType = NCBorderType.LightCurved
+  public var expandWidth = true
+  public var expandHeight = false
+
+  public init() { }
+
+  public mutating func div(args: Any...) -> NCRow {
+    var r = NCRow()
+    for v in args {
+      if v is String {
+        var t = NCText()
+        t.text = v as! String
+        r.children.append(t)
+        NC.pd("String \(v)")
+      }
+    }
+    children.append(r)
+    return r
+  }
+
+}
+
+
 public class NCImpl {
 
   public let NORMAL    = Int32(0)
@@ -57,7 +179,7 @@ public class NCImpl {
 
   var invalidated = false
 
-  public func start(fn: () -> Void) {
+  public func start(fn: (inout div: NCDiv) -> Void) {
     Signal.trap(Signal.INT, ncIntSignalHandler)
     Signal.trap(SIGWINCH, ncWinchSignalHandler)
 
@@ -73,7 +195,10 @@ public class NCImpl {
 
     assume_default_colors(-1, -1)
 
-    fn()
+    var mainDiv = NCDiv()
+    mainDiv.expandHeight = true
+
+    fn(div: &mainDiv)
 
     timeout(0)
 
