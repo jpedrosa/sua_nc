@@ -117,7 +117,11 @@ public struct NCRow: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-
+    var nx = 0
+    for s in size.children! {
+      s.element!.draw(nx, y: y, size: s)
+      nx += s.width
+    }
   }
 
 }
@@ -235,7 +239,8 @@ public struct NCText: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-
+    move(Int32(y), Int32(x))
+    addstr(text)
   }
 
 }
@@ -324,12 +329,14 @@ public struct NCDiv: NCElement {
         let s = r.tellSize()
         var w = t.width
         var h = t.height
-        if t.expandWidth > 0 {
-          w = width
+        if t.expandWidth == 0 {
+          r.draw(x, y: y, size: s)
         }
+        // w = width
         // r.draw(x, y: y, width: w, height: )
         //NC.pd(inspect())
         //r.draw()
+        ny += h
       }
     }
   }
