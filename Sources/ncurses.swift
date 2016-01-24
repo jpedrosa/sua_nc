@@ -21,6 +21,8 @@ func ncWinchSignalHandler(n: Int32) {
 public enum NCType {
   case Div
   case Span
+  case Row
+  case Text
 }
 
 
@@ -29,7 +31,20 @@ public enum NCBorderType {
 }
 
 
+public struct TellSize {
+  public var width = 0
+  public var height = 0
+  public var expandWidth = 0
+  public var expandHeight = 0
+  public var expandParentWidth = 0
+  public var expandParentHeight = 0
+  public var expandWidthFreely = 0
+  public var expandHeightFreely = 0
+}
+
+
 public protocol NCElement {
+  var type: NCType { get }
   var maxWidth: Int { get set }
   var maxHeight: Int { get set }
   var width: Int { get set }
@@ -41,13 +56,17 @@ public protocol NCElement {
   var borderType: NCBorderType { get set }
   var expandWidth: Bool { get set }
   var expandHeight: Bool { get set }
+  var expandParentWidth: Bool { get set }
+  var expandParentHeight: Bool { get set }
+
+  mutating func tellSize() -> TellSize
+
+  func draw(x: Int, y: Int, width: Int, height: Int)
 }
 
 
-public extension NCElement { }
-
-
 public struct NCRow: NCElement {
+  public var type = NCType.Row
   public var children = [NCElement]()
 
   public var maxWidth = -1
@@ -61,8 +80,42 @@ public struct NCRow: NCElement {
   public var borderType = NCBorderType.LightCurved
   public var expandWidth = true
   public var expandHeight = false
+  public var expandParentWidth = true
+  public var expandParentHeight = false
 
   public init() { }
+
+  public mutating func tellSize() -> TellSize {
+    var t = TellSize()
+    for e in children {
+      var me = e
+      let s = me.tellSize()
+      t.width += s.width
+      if s.height > t.height {
+        t.height = s.height
+      }
+      t.expandWidth += s.expandWidth
+      if s.expandWidthFreely > 0 {
+        t.expandWidthFreely += 1
+      }
+      if s.expandHeight > 0 {
+        t.expandHeight = 1
+        if s.expandHeightFreely > 0 {
+          t.expandHeightFreely += 1
+        }
+      }
+      t.expandParentWidth += s.expandParentWidth
+      if s.expandParentHeight > 0 {
+        t.expandParentHeight = 1
+      }
+    }
+    return t
+  }
+
+  public func draw(x: Int, y: Int, width: Int, height: Int) {
+
+  }
+
 }
 
 
@@ -81,12 +134,47 @@ public struct NCSpan: NCElement {
   public var borderType = NCBorderType.LightCurved
   public var expandWidth = false
   public var expandHeight = false
+  public var expandParentWidth = false
+  public var expandParentHeight = false
 
   public init() { }
+
+  public mutating func tellSize() -> TellSize {
+    var t = TellSize()
+    for e in children {
+      var me = e
+      let s = me.tellSize()
+      t.width += s.width
+      if s.height > t.height {
+        t.height = s.height
+      }
+      if s.expandWidth > 0 {
+        t.expandWidth += 1
+        if s.expandWidthFreely > 0 {
+          t.expandWidthFreely += 1
+        }
+      }
+      if s.expandHeight > 0 {
+        t.expandHeight = 1
+        if s.expandHeightFreely > 0 {
+          t.expandHeightFreely = 1
+        }
+      }
+      t.expandParentWidth += s.expandParentWidth
+      t.expandParentHeight += s.expandParentHeight
+    }
+    return t
+  }
+
+  public func draw(x: Int, y: Int, width: Int, height: Int) {
+
+  }
+
 }
 
 
 public struct NCText: NCElement {
+  public var type = NCType.Text
   public var text = ""
 
   public var maxWidth = -1
@@ -100,8 +188,50 @@ public struct NCText: NCElement {
   public var borderType = NCBorderType.LightCurved
   public var expandWidth = false
   public var expandHeight = false
+  public var expandParentWidth = false
+  public var expandParentHeight = false
+  public var count = 0
 
   public init() { }
+
+  public mutating func tellSize() -> TellSize {
+    var t = TellSize()
+    count = text.characters.count
+    if width > 0 {
+      t.width = width
+    } else {
+      t.width = count
+    }
+    if height > 0 {
+      t.height = height
+    } else if count > 0 {
+      t.height = 1
+    }
+    if expandWidth {
+      t.expandWidth = 1
+      if width == -1 && maxWidth == -1 {
+        t.expandWidthFreely = 1
+      }
+    }
+    if expandHeight {
+      t.expandHeight = 1
+      if height == -1 && maxHeight == -1 {
+        t.expandHeightFreely = 1
+      }
+    }
+    if expandParentWidth {
+      t.expandParentWidth = 1
+    }
+    if expandParentHeight {
+      t.expandParentHeight = 1
+    }
+    return t
+  }
+
+  public func draw(x: Int, y: Int, width: Int, height: Int) {
+
+  }
+
 }
 
 
@@ -120,6 +250,8 @@ public struct NCDiv: NCElement {
   public var borderType = NCBorderType.LightCurved
   public var expandWidth = true
   public var expandHeight = false
+  public var expandParentWidth = true
+  public var expandParentHeight = false
 
   public init() { }
 
@@ -135,6 +267,46 @@ public struct NCDiv: NCElement {
     }
     children.append(r)
     return r
+  }
+
+  public func tellSize() -> TellSize {
+    var t = TellSize()
+    for e in children {
+      var me = e
+      let s = me.tellSize()
+      if s.width > t.width {
+        t.width = s.width
+      }
+      t.height += s.height
+      if s.expandWidth > 0 {
+        t.expandWidth = 1
+        if s.expandWidthFreely > 0 {
+          t.expandWidthFreely = 1
+        }
+      }
+      if s.expandHeight > 0 {
+        t.expandHeight += 1
+        if s.expandHeightFreely > 0 {
+          t.expandHeightFreely += 1
+        }
+      }
+      if s.expandParentWidth > 0 {
+        t.expandParentWidth = 1
+      }
+      if s.expandParentHeight > 0 {
+        t.expandParentHeight += 1
+      }
+    }
+    return t
+  }
+
+  public func draw(x: Int, y: Int, width: Int, height: Int) {
+    var ny = y
+    for r in children {
+      var mr = r
+      NC.pd(inspect(mr.tellSize()))
+      //r.draw()
+    }
   }
 
 }
@@ -178,6 +350,7 @@ public class NCImpl {
   }
 
   var invalidated = false
+  var mainDiv = NCDiv()
 
   public func start(fn: (inout div: NCDiv) -> Void) {
     Signal.trap(Signal.INT, ncIntSignalHandler)
@@ -195,7 +368,6 @@ public class NCImpl {
 
     assume_default_colors(-1, -1)
 
-    var mainDiv = NCDiv()
     mainDiv.expandHeight = true
 
     fn(div: &mainDiv)
@@ -227,6 +399,9 @@ public class NCImpl {
 
   public func drawAgain() {
     clear()
+    let w = Int(getmaxx(stdscr))
+    let h = Int(getmaxy(stdscr))
+    mainDiv.draw(0, y: 0, width: w, height: h)
     printLogs()
     refresh()
   }
