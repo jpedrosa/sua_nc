@@ -212,10 +212,26 @@ public struct NCText: NCElement {
     } else {
       t.width = count
     }
+    if t.width > 0 {
+      if borderRight {
+        t.width += 1
+      }
+      if borderLeft {
+        t.width += 1
+      }
+    }
     if height > 0 {
       t.height = height
     } else if count > 0 {
       t.height = 1
+    }
+    if t.height > 0 {
+      if borderTop {
+        t.height += 1
+      }
+      if borderBottom {
+        t.height += 1
+      }
     }
     if expandWidth {
       t.expandWidth = 1
@@ -239,7 +255,68 @@ public struct NCText: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    move(Int32(y), Int32(x))
+    let w = size.width
+    var h = size.height
+    if w <= 0 || h <= 0 {
+      return
+    }
+    var ny = y
+    var nx = x
+    var borderHeight = h
+    if borderTop {
+      var si = 0
+      var ei = w
+      if borderRight {
+        move(Int32(ny), Int32(nx + w - 1))
+        addstr("╮")
+        ei -= 1
+      }
+      move(Int32(ny), Int32(nx))
+      if borderLeft {
+        addstr("╭")
+        si += 1
+      }
+      for i in si..<ei {
+        addstr("─")
+      }
+      ny += 1
+      borderHeight -= 1
+    }
+    if borderBottom {
+      var si = 0
+      var ei = w
+      if borderRight {
+        move(Int32(ny + 1), Int32(nx + w - 1))
+        addstr("╯")
+        ei -= 1
+      }
+      move(Int32(ny + 1), Int32(nx))
+      if borderLeft {
+        addstr("╰")
+        si += 1
+      }
+      for i in si..<ei {
+        addstr("─")
+      }
+      borderHeight -= 1
+    }
+    if borderRight {
+      var ei = ny + borderHeight
+      let bx = nx + w - 1
+      for i in ny..<ei {
+        move(Int32(i), Int32(bx))
+        addstr("│")
+      }
+    }
+    if borderLeft {
+      var ei = ny + borderHeight
+      for i in ny..<ei {
+        move(Int32(i), Int32(nx))
+        addstr("│")
+      }
+      nx += 1
+    }
+    move(Int32(ny), Int32(nx))
     addstr(text)
   }
 
@@ -274,6 +351,9 @@ public struct NCDiv: NCElement {
         t.text = v as! String
         r.children.append(t)
         NC.pd("String \(v)")
+      } else if v is NCText {
+        r.children.append(v as! NCText)
+        NC.pd("direct \(v)")
       }
     }
     children.append(r)
