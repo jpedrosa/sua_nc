@@ -39,6 +39,7 @@ public struct NCPoint {
 
 
 public struct TellSize {
+  public var count = 0                 // Useful to record NCText's char count.
   public var width = 0
   public var height = 0
   public var expandWidth = 0
@@ -262,11 +263,11 @@ public struct NCText: NCElement {
   public func tellSize() -> TellSize {
     var t = TellSize()
     t.element = self
-    let count = text.characters.count
+    t.count = text.characters.count
     if width > 0 {
       t.width = width
     } else {
-      t.width = count
+      t.width = t.count
     }
     if t.width > 0 {
       if borderRight {
@@ -276,9 +277,12 @@ public struct NCText: NCElement {
         t.width += 1
       }
     }
+    if maxWidth >= 0 && t.width > maxWidth {
+      t.width = maxWidth
+    }
     if height > 0 {
       t.height = height
-    } else if count > 0 {
+    } else if t.count > 0 {
       t.height = 1
     }
     if t.height > 0 {
@@ -288,6 +292,9 @@ public struct NCText: NCElement {
       if borderBottom {
         t.height += 1
       }
+    }
+    if maxHeight >= 0 && t.height > maxHeight {
+      t.height = maxHeight
     }
     if expandWidth {
       t.expandWidth = 1
@@ -334,7 +341,7 @@ public struct NCDiv: NCElement {
   public var borderType = NCBorderType.LightCurved
   public var expandWidth = true
   public var expandHeight = false
-  public var expandParentWidth = true
+  public var expandParentWidth = false
   public var expandParentHeight = false
 
   public init() { }
