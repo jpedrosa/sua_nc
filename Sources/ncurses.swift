@@ -31,6 +31,14 @@ public enum NCBorderType {
 }
 
 
+public struct NCPoint {
+  public var x: Int
+  public var y: Int
+
+  static let far = NCPoint(x: -10000, y: 0)
+}
+
+
 public struct TellSize {
   public var width = 0
   public var height = 0
@@ -64,6 +72,78 @@ public protocol NCElement {
   func tellSize() -> TellSize
 
   func draw(x: Int, y: Int, size: TellSize)
+
+  func drawBorder(x: Int, y: Int, size: TellSize) -> NCPoint
+}
+
+
+extension NCElement {
+
+  public func drawBorder(x: Int, y: Int, size: TellSize) -> NCPoint {
+    let w = size.width
+    let h = size.height
+    if w <= 0 || h <= 0 {
+      return NCPoint.far
+    }
+    var ny = y
+    var nx = x
+    var borderHeight = h
+    if borderTop {
+      var si = 0
+      var ei = w
+      if borderRight {
+        move(Int32(ny), Int32(nx + w - 1))
+        addstr("╮")
+        ei -= 1
+      }
+      move(Int32(ny), Int32(nx))
+      if borderLeft {
+        addstr("╭")
+        si += 1
+      }
+      for _ in si..<ei {
+        addstr("─")
+      }
+      ny += 1
+      borderHeight -= 1
+    }
+    if borderBottom {
+      borderHeight -= 1
+      var si = 0
+      var ei = w
+      if borderRight {
+        move(Int32(ny + borderHeight), Int32(nx + w - 1))
+        addstr("╯")
+        ei -= 1
+      }
+      move(Int32(ny + borderHeight), Int32(nx))
+      if borderLeft {
+        addstr("╰")
+        si += 1
+      }
+      for _ in si..<ei {
+        addstr("─")
+      }
+    }
+    if borderRight {
+      let ei = ny + borderHeight
+      let bx = nx + w - 1
+      for i in ny..<ei {
+        move(Int32(i), Int32(bx))
+        addstr("│")
+      }
+    }
+    if borderLeft {
+      let ei = ny + borderHeight
+      for i in ny..<ei {
+        move(Int32(i), Int32(nx))
+        addstr("│")
+      }
+      nx += 1
+    }
+    return NCPoint(x: nx, y: ny)
+  }
+
 }
 
 
@@ -113,14 +193,30 @@ public struct NCRow: NCElement {
         t.expandParentHeight = 1
       }
     }
+    if t.width > 0 {
+      if borderRight {
+        t.width += 1
+      }
+      if borderLeft {
+        t.width += 1
+      }
+    }
+    if t.height > 0 {
+      if borderTop {
+        t.height += 1
+      }
+      if borderBottom {
+        t.height += 1
+      }
+    }
     return t
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    var nx = 0
+    var ap = drawBorder(x, y: y, size: size)
     for s in size.children! {
-      s.element!.draw(nx, y: y, size: s)
-      nx += s.width
+      s.element!.draw(ap.x, y: ap.y, size: s)
+      ap.x += s.width
     }
   }
 
@@ -255,68 +351,8 @@ public struct NCText: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    let w = size.width
-    let h = size.height
-    if w <= 0 || h <= 0 {
-      return
-    }
-    var ny = y
-    var nx = x
-    var borderHeight = h
-    if borderTop {
-      var si = 0
-      var ei = w
-      if borderRight {
-        move(Int32(ny), Int32(nx + w - 1))
-        addstr("╮")
-        ei -= 1
-      }
-      move(Int32(ny), Int32(nx))
-      if borderLeft {
-        addstr("╭")
-        si += 1
-      }
-      for _ in si..<ei {
-        addstr("─")
-      }
-      ny += 1
-      borderHeight -= 1
-    }
-    if borderBottom {
-      var si = 0
-      var ei = w
-      if borderRight {
-        move(Int32(ny + 1), Int32(nx + w - 1))
-        addstr("╯")
-        ei -= 1
-      }
-      move(Int32(ny + 1), Int32(nx))
-      if borderLeft {
-        addstr("╰")
-        si += 1
-      }
-      for _ in si..<ei {
-        addstr("─")
-      }
-      borderHeight -= 1
-    }
-    if borderRight {
-      let ei = ny + borderHeight
-      let bx = nx + w - 1
-      for i in ny..<ei {
-        move(Int32(i), Int32(bx))
-        addstr("│")
-      }
-    }
-    if borderLeft {
-      let ei = ny + borderHeight
-      for i in ny..<ei {
-        move(Int32(i), Int32(nx))
-        addstr("│")
-      }
-      nx += 1
-    }
-    move(Int32(ny), Int32(nx))
+    let ap = drawBorder(x, y: y, size: size)
+    move(Int32(ap.y), Int32(ap.x))
     addstr(text)
   }
 
@@ -343,7 +379,7 @@ public struct NCDiv: NCElement {
 
   public init() { }
 
-  public mutating func div(args: Any...) -> NCRow {
+  public mutating func div(args: Any..., fn: ((inout NCRow) -> Void)? = nil) {
     var r = NCRow()
     for v in args {
       if v is String {
@@ -356,8 +392,10 @@ public struct NCDiv: NCElement {
         NC.pd("direct \(v)")
       }
     }
+    if let af = fn {
+      af(&r)
+    }
     children.append(r)
-    return r
   }
 
   public func tellSize() -> TellSize {
