@@ -166,6 +166,23 @@ public struct NCSpan: NCElement {
 
   public init() { }
 
+  public mutating func addArgs(args: [Any]) {
+    for v in args {
+      if v is String {
+        var t = NCText()
+        t.text = v as! String
+        children.append(t)
+        NC.pd("String \(v)")
+      } else if v is NCText {
+        children.append(v as! NCText)
+        NC.pd("direct \(v)")
+      } else if v is NCSpan {
+        children.append(v as! NCSpan)
+        NC.pd("spanning starts now")
+      }
+    }
+  }
+
   public func tellSize() -> TellSize {
     var t = TellSize()
     t.element = self
@@ -323,25 +340,12 @@ public struct NCDiv: NCElement {
   public init() { }
 
   public mutating func span(args: Any..., fn: ((inout NCSpan) -> Void)? = nil) {
-    var r = NCSpan()
-    for v in args {
-      if v is String {
-        var t = NCText()
-        t.text = v as! String
-        r.children.append(t)
-        NC.pd("String \(v)")
-      } else if v is NCText {
-        r.children.append(v as! NCText)
-        NC.pd("direct \(v)")
-      } else if v is NCSpan {
-        r.children.append(v as! NCSpan)
-        NC.pd("spanning starts now")
-      }
-    }
+    var span = NCSpan()
+    span.addArgs(args)
     if let af = fn {
-      af(&r)
+      af(&span)
     }
-    children.append(r)
+    children.append(span)
   }
 
   public func tellSize() -> TellSize {
