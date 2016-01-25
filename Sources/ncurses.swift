@@ -39,7 +39,6 @@ public struct NCPoint {
 
 
 public struct TellSize {
-  public var count = 0                 // Useful to record NCText's char count.
   public var width = 0
   public var height = 0
   public var expandWidth = 0
@@ -50,6 +49,12 @@ public struct TellSize {
   public var expandHeightFreely = 0
   public var element: NCElement?
   public var children: [TellSize]?
+
+  public var count = 0                 // Useful to record NCText's char count.
+  public var borderTop = 0       // Store these for the drawing command.
+  public var borderRight = 0
+  public var borderBottom = 0
+  public var borderLeft = 0
 }
 
 
@@ -271,9 +276,11 @@ public struct NCText: NCElement {
     }
     if t.width > 0 {
       if borderRight {
+        t.borderRight = 1
         t.width += 1
       }
       if borderLeft {
+        t.borderLeft = 1
         t.width += 1
       }
     }
@@ -287,9 +294,11 @@ public struct NCText: NCElement {
     }
     if t.height > 0 {
       if borderTop {
+        t.borderTop = 1
         t.height += 1
       }
       if borderBottom {
+        t.borderBottom = 1
         t.height += 1
       }
     }
@@ -320,7 +329,12 @@ public struct NCText: NCElement {
   public func draw(x: Int, y: Int, size: TellSize) {
     let ap = drawBorder(x, y: y, size: size)
     move(Int32(ap.y), Int32(ap.x))
-    addstr(text)
+    let w = size.width - size.borderLeft - size.borderRight
+    if w == size.count {
+      addstr(text)
+    } else {
+      addstr(String(text.characters.substring(0, endIndex: w)))
+    }
   }
 
 }
