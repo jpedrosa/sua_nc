@@ -467,28 +467,24 @@ public struct NCDiv: NCElement {
   }
 
   public func mainDraw(x: Int, y: Int, width: Int, height: Int) {
-    var t = tellSize()
+    var size = tellSize()
     if expandWidth {
-      t.width = width
+      size.width = width
     }
     if expandHeight {
-      t.height = height
+      size.height = height
     }
-    var ap = drawBorder(x, y: y, size: t)
-    if t.width <= width && t.height <= height {
-      for r in children {
-        let s = r.tellSize()
-        // var w = t.width
-        let h = s.height
-        if t.expandWidth == 0 {
-          r.draw(ap.x, y: ap.y, size: s)
-        }
-        // w = width
-        // r.draw(x, y: y, width: w, height: )
-        //NC.pd(inspect())
-        //r.draw()
-        ap.y += h
+    var ap = drawBorder(x, y: y, size: size)
+    let w = size.width - size.borderLeft - size.borderRight
+    for s in size.children! {
+      if s.width <= w {
+        s.element!.draw(ap.x, y: ap.y, size: s)
+      } else {
+        var clippedSize = s
+        clippedSize.width = w
+        s.element!.draw(ap.x, y: ap.y, size: clippedSize)
       }
+      ap.y += s.height
     }
   }
 
