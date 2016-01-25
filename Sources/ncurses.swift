@@ -180,6 +180,10 @@ public struct NCSpan: NCElement {
 
   public init() { }
 
+  public mutating func add(args: Any...) {
+    addArgs(args)
+  }
+
   public mutating func addArgs(args: [Any]) {
     for v in args {
       if v is String {
@@ -231,6 +235,9 @@ public struct NCSpan: NCElement {
         t.width += 1
       }
     }
+    if maxWidth >= 0 && t.width > maxWidth {
+      t.width = maxWidth
+    }
     if t.height > 0 {
       if borderTop {
         t.borderTop = 1
@@ -241,14 +248,31 @@ public struct NCSpan: NCElement {
         t.height += 1
       }
     }
+    if maxHeight >= 0 && t.height > maxHeight {
+      t.height = maxHeight
+    }
     return t
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
     var ap = drawBorder(x, y: y, size: size)
-    for s in size.children! {
-      s.element!.draw(ap.x, y: ap.y, size: s)
-      ap.x += s.width
+    var w = size.width - size.borderLeft - size.borderRight
+    if w > 0 {
+      for s in size.children! {
+        if s.width <= w {
+          s.element!.draw(ap.x, y: ap.y, size: s)
+          ap.x += s.width
+          w -= s.width
+          if w <= 0 {
+            break
+          }
+        } else {
+          var clippedSize = s
+          clippedSize.width = w
+          clippedSize.element!.draw(ap.x, y: ap.y, size: clippedSize)
+          break
+        }
+      }
     }
   }
 
