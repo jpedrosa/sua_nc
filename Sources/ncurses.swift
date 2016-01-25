@@ -106,8 +106,10 @@ extension NCElement {
         addstr("╭")
         si += 1
       }
-      for _ in si..<ei {
-        addstr("─")
+      if si < ei {
+        for _ in si..<ei {
+          addstr("─")
+        }
       }
       ny += 1
       borderHeight -= 1
@@ -126,23 +128,29 @@ extension NCElement {
         addstr("╰")
         si += 1
       }
-      for _ in si..<ei {
-        addstr("─")
+      if si < ei {
+        for _ in si..<ei {
+          addstr("─")
+        }
       }
     }
     if size.borderRight > 0 {
       let ei = ny + borderHeight
       let bx = nx + w - 1
-      for i in ny..<ei {
-        move(Int32(i), Int32(bx))
-        addstr("│")
+      if ny < ei {
+        for i in ny..<ei {
+          move(Int32(i), Int32(bx))
+          addstr("│")
+        }
       }
     }
     if size.borderLeft > 0 {
       let ei = ny + borderHeight
-      for i in ny..<ei {
-        move(Int32(i), Int32(nx))
-        addstr("│")
+      if ny < ei {
+        for i in ny..<ei {
+          move(Int32(i), Int32(nx))
+          addstr("│")
+        }
       }
       nx += 1
     }
@@ -178,10 +186,8 @@ public struct NCSpan: NCElement {
         var t = NCText()
         t.text = v as! String
         children.append(t)
-        NC.pd("String \(v)")
       } else if v is NCText {
         children.append(v as! NCText)
-        NC.pd("direct \(v)")
       } else if v is NCSpan {
         children.append(v as! NCSpan)
         NC.pd("spanning starts now")
@@ -334,10 +340,12 @@ public struct NCText: NCElement {
     let ap = drawBorder(x, y: y, size: size)
     move(Int32(ap.y), Int32(ap.x))
     let w = size.width - size.borderLeft - size.borderRight
-    if w == size.count {
-      addstr(text)
-    } else {
-      addstr(String(text.characters.substring(0, endIndex: w)))
+    if w > 0 {
+      if w == size.count {
+        addstr(text)
+      } else {
+        addstr(String(text.characters.substring(0, endIndex: w)))
+      }
     }
   }
 
