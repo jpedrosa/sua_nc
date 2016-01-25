@@ -93,16 +93,16 @@ extension NCElement {
     var ny = y
     var nx = x
     var borderHeight = h
-    if borderTop {
+    if size.borderTop > 0 {
       var si = 0
       var ei = w
-      if borderRight {
+      if size.borderRight > 0 {
         move(Int32(ny), Int32(nx + w - 1))
         addstr("╮")
         ei -= 1
       }
       move(Int32(ny), Int32(nx))
-      if borderLeft {
+      if size.borderLeft > 0 {
         addstr("╭")
         si += 1
       }
@@ -112,17 +112,17 @@ extension NCElement {
       ny += 1
       borderHeight -= 1
     }
-    if borderBottom {
+    if size.borderBottom > 0 {
       borderHeight -= 1
       var si = 0
       var ei = w
-      if borderRight {
+      if size.borderRight > 0 {
         move(Int32(ny + borderHeight), Int32(nx + w - 1))
         addstr("╯")
         ei -= 1
       }
       move(Int32(ny + borderHeight), Int32(nx))
-      if borderLeft {
+      if size.borderLeft > 0 {
         addstr("╰")
         si += 1
       }
@@ -130,7 +130,7 @@ extension NCElement {
         addstr("─")
       }
     }
-    if borderRight {
+    if size.borderRight > 0 {
       let ei = ny + borderHeight
       let bx = nx + w - 1
       for i in ny..<ei {
@@ -138,7 +138,7 @@ extension NCElement {
         addstr("│")
       }
     }
-    if borderLeft {
+    if size.borderLeft > 0 {
       let ei = ny + borderHeight
       for i in ny..<ei {
         move(Int32(i), Int32(nx))
@@ -217,17 +217,21 @@ public struct NCSpan: NCElement {
     }
     if t.width > 0 {
       if borderRight {
+        t.borderRight = 1
         t.width += 1
       }
       if borderLeft {
+        t.borderLeft = 1
         t.width += 1
       }
     }
     if t.height > 0 {
       if borderTop {
+        t.borderTop = 1
         t.height += 1
       }
       if borderBottom {
+        t.borderBottom = 1
         t.height += 1
       }
     }
@@ -401,17 +405,21 @@ public struct NCDiv: NCElement {
     }
     if t.width > 0 {
       if borderRight {
+        t.borderRight = 1
         t.width += 1
       }
       if borderLeft {
+        t.borderLeft = 1
         t.width += 1
       }
     }
     if t.height > 0 {
       if borderTop {
+        t.borderTop = 1
         t.height += 1
       }
       if borderBottom {
+        t.borderBottom = 1
         t.height += 1
       }
     }
