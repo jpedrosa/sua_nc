@@ -159,9 +159,9 @@ public struct NCSpan: NCElement {
   public var borderBottom = false
   public var borderLeft = false
   public var borderType = NCBorderType.LightCurved
-  public var expandWidth = true
+  public var expandWidth = false
   public var expandHeight = false
-  public var expandParentWidth = true
+  public var expandParentWidth = false
   public var expandParentHeight = false
 
   public init() { }
