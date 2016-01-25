@@ -256,7 +256,7 @@ public struct NCText: NCElement {
 
   public func draw(x: Int, y: Int, size: TellSize) {
     let w = size.width
-    var h = size.height
+    let h = size.height
     if w <= 0 || h <= 0 {
       return
     }
@@ -276,7 +276,7 @@ public struct NCText: NCElement {
         addstr("╭")
         si += 1
       }
-      for i in si..<ei {
+      for _ in si..<ei {
         addstr("─")
       }
       ny += 1
@@ -295,13 +295,13 @@ public struct NCText: NCElement {
         addstr("╰")
         si += 1
       }
-      for i in si..<ei {
+      for _ in si..<ei {
         addstr("─")
       }
       borderHeight -= 1
     }
     if borderRight {
-      var ei = ny + borderHeight
+      let ei = ny + borderHeight
       let bx = nx + w - 1
       for i in ny..<ei {
         move(Int32(i), Int32(bx))
@@ -309,7 +309,7 @@ public struct NCText: NCElement {
       }
     }
     if borderLeft {
-      var ei = ny + borderHeight
+      let ei = ny + borderHeight
       for i in ny..<ei {
         move(Int32(i), Int32(nx))
         addstr("│")
@@ -394,7 +394,7 @@ public struct NCDiv: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    var ny = y
+    //var ny = y
     for r in children {
       NC.pd(inspect(r.tellSize()))
       //r.draw()
@@ -402,13 +402,13 @@ public struct NCDiv: NCElement {
   }
 
   public func mainDraw(x: Int, y: Int, width: Int, height: Int) {
-    var t = tellSize()
+    let t = tellSize()
     if t.width <= width && t.height <= height {
       var ny = y
       for r in children {
         let s = r.tellSize()
-        var w = t.width
-        var h = t.height
+        // var w = t.width
+        let h = t.height
         if t.expandWidth == 0 {
           r.draw(x, y: y, size: s)
         }
