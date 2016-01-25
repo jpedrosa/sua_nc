@@ -21,7 +21,6 @@ func ncWinchSignalHandler(n: Int32) {
 public enum NCType {
   case Div
   case Span
-  case Row
   case Text
 }
 
@@ -147,8 +146,8 @@ extension NCElement {
 }
 
 
-public struct NCRow: NCElement {
-  public var type = NCType.Row
+public struct NCSpan: NCElement {
+  public var type = NCType.Span
   public var children = [NCElement]()
 
   public var maxWidth = -1
@@ -218,62 +217,6 @@ public struct NCRow: NCElement {
       s.element!.draw(ap.x, y: ap.y, size: s)
       ap.x += s.width
     }
-  }
-
-}
-
-
-public struct NCSpan: NCElement {
-  public var type = NCType.Span
-  public var children = [NCElement]()
-
-  public var maxWidth = -1
-  public var maxHeight = -1
-  public var width = -1
-  public var height = -1
-  public var borderTop = false
-  public var borderRight = false
-  public var borderBottom = false
-  public var borderLeft = false
-  public var borderType = NCBorderType.LightCurved
-  public var expandWidth = false
-  public var expandHeight = false
-  public var expandParentWidth = false
-  public var expandParentHeight = false
-
-  public init() { }
-
-  public func tellSize() -> TellSize {
-    var t = TellSize()
-    t.children = []
-    t.element = self
-    for e in children {
-      let s = e.tellSize()
-      t.children!.append(s)
-      t.width += s.width
-      if s.height > t.height {
-        t.height = s.height
-      }
-      if s.expandWidth > 0 {
-        t.expandWidth += 1
-        if s.expandWidthFreely > 0 {
-          t.expandWidthFreely += 1
-        }
-      }
-      if s.expandHeight > 0 {
-        t.expandHeight = 1
-        if s.expandHeightFreely > 0 {
-          t.expandHeightFreely = 1
-        }
-      }
-      t.expandParentWidth += s.expandParentWidth
-      t.expandParentHeight += s.expandParentHeight
-    }
-    return t
-  }
-
-  public func draw(x: Int, y: Int, size: TellSize) {
-
   }
 
 }
@@ -361,7 +304,7 @@ public struct NCText: NCElement {
 
 public struct NCDiv: NCElement {
   public var type = NCType.Div
-  public var children = [NCRow]()
+  public var children = [NCSpan]()
 
   public var maxWidth = -1
   public var maxHeight = -1
@@ -379,8 +322,8 @@ public struct NCDiv: NCElement {
 
   public init() { }
 
-  public mutating func div(args: Any..., fn: ((inout NCRow) -> Void)? = nil) {
-    var r = NCRow()
+  public mutating func span(args: Any..., fn: ((inout NCSpan) -> Void)? = nil) {
+    var r = NCSpan()
     for v in args {
       if v is String {
         var t = NCText()
@@ -390,6 +333,9 @@ public struct NCDiv: NCElement {
       } else if v is NCText {
         r.children.append(v as! NCText)
         NC.pd("direct \(v)")
+      } else if v is NCSpan {
+        r.children.append(v as! NCSpan)
+        NC.pd("spanning starts now")
       }
     }
     if let af = fn {
@@ -468,7 +414,7 @@ public struct NCDiv: NCElement {
       for r in children {
         let s = r.tellSize()
         // var w = t.width
-        let h = t.height
+        let h = s.height
         if t.expandWidth == 0 {
           r.draw(ap.x, y: ap.y, size: s)
         }
