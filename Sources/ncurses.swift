@@ -357,6 +357,13 @@ public struct NCSpan: NCElement {
 }
 
 
+public enum NCTextAlign {
+  case Left
+  case Center
+  case Right
+}
+
+
 public struct NCText: NCElement {
   public var type = NCType.Text
   public var text = ""
@@ -374,6 +381,7 @@ public struct NCText: NCElement {
   public var expandHeight = false
   public var expandParentWidth = false
   public var expandParentHeight = false
+  public var align = NCTextAlign.Left
 
   public init() { }
 
@@ -439,11 +447,17 @@ public struct NCText: NCElement {
     move(Int32(ap.y), Int32(ap.x))
     let w = size.width - size.borderLeft - size.borderRight
     if w > 0 {
-      if w == size.count {
+      let len = size.count
+      if w == len {
         addstr(text)
+      } else if align == .Left {
+        addstr(String(text.characters.substring(0, endIndex: min(w, len))))
       } else {
-        addstr(String(text.characters.substring(0,
-            endIndex: min(w, size.count))))
+        let z = String(text.characters.substring(0, endIndex: min(w, len)))
+        let n = align == .Right ? w - len : (w - len) / 2
+        let a = [UInt8](count: n, repeatedValue: 32)
+        let s = String.fromCharCodes(a) ?? ""
+        addstr("\(s)\(z)")
       }
     }
   }
