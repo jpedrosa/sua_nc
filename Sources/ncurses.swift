@@ -297,27 +297,46 @@ public struct NCSpan: NCElement {
     var ap = drawBorder(x, y: y, size: size)
     var w = size.width - size.borderLeft - size.borderRight
     if w > 0 {
-      NC.pd("expand count \(size.expandWidth) \(size.expandParentWidth) \(expandWidth)")
-      NC.pd("child \(size.childWidthExpander) \(size.childExpandMaxWidth)")
-      let cc = size.children!
-      if size.childWidthExpander > 0 {
-        let availableWidth = w - size.childrenWidth
-        NC.pd("w \(w) childrenWidth \(size.childrenWidth) diff \(availableWidth)")
-        if availableWidth > 0 {
-          // var anyWidthExpander = 0
-          // var widthExpander = 0
-          // var childrenWidths = [Int](count: cc.count, repeatedValue: 0)
-          // for s in cc {
-          //   if s.expandWidth {
-          //     widthExpander += 1
-          //     if s.expandMaxWidth < 0 {
-          //       anyWidthExpander += 1
-          //     }
-          //   }
-          // }
+      var childrenList = size.children!
+      var widthExpander = size.childWidthExpander
+      if widthExpander > 0 {
+        var changedChildren = childrenList
+        let len = changedChildren.count
+        var expanders = [Bool](count: len, repeatedValue: false)
+        for i in 0..<len {
+          if childrenList[i].expandWidth {
+            expanders[i] = true
+          }
         }
+        var availableWidth = w - size.childrenWidth
+        while availableWidth > 0 && widthExpander > 0 {
+          var widthShare = availableWidth
+          if widthExpander > 1 {
+            widthShare = availableWidth / widthExpander
+            if widthShare == 0 {
+              widthShare = 1
+            }
+          }
+          for i in 0..<len {
+            let c = changedChildren[i]
+            if expanders[i] {
+              if c.expandMaxWidth == -1 {
+                changedChildren[i].width += widthShare
+                availableWidth -= widthShare
+              } else if widthShare <= c.expandMaxWidth {
+                changedChildren[i].width += widthShare
+                changedChildren[i].expandMaxWidth -= widthShare
+                availableWidth -= widthShare
+              } else if c.expandMaxWidth == 0 {
+                widthExpander -= 1
+                expanders[i] = false
+              }
+            }
+          }
+        }
+        childrenList = changedChildren
       }
-      for s in cc {
+      for s in childrenList {
         if s.width <= w {
           s.element!.draw(ap.x, y: ap.y, size: s)
           ap.x += s.width
@@ -423,7 +442,8 @@ public struct NCText: NCElement {
       if w == size.count {
         addstr(text)
       } else {
-        addstr(String(text.characters.substring(0, endIndex: w)))
+        addstr(String(text.characters.substring(0,
+            endIndex: min(w, size.count))))
       }
     }
   }
