@@ -255,9 +255,17 @@ public struct NCSpan: NCElement {
     }
     if expandParentWidth {
       t.expandParentWidth = true
+      t.expandWidth += 1
     }
     if expandParentHeight {
       t.expandParentHeight = true
+      t.expandHeight = 1
+    }
+    if expandWidth {
+      t.expandWidth += 1
+    }
+    if expandHeight {
+      t.expandHeight = 1
     }
     return t
   }
