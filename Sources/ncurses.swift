@@ -41,12 +41,16 @@ public struct NCPoint {
 public struct TellSize {
   public var width = 0
   public var height = 0
-  public var expandWidth = 0
-  public var expandHeight = 0
+  public var expandWidth = false
+  public var expandMaxWidth = 0
+  public var expandHeight = false
+  public var expandMaxHeight = 0
   public var expandParentWidth = false
   public var expandParentHeight = false
-  public var expandWidthFreely = 0
-  public var expandHeightFreely = 0
+  public var childExpandWidth = false
+  public var childExpandMaxWidth = 0
+  public var childExpandHeight = false
+  public var childExpandMaxHeight = 0
   public var element: NCElement?
   public var children: [TellSize]?
 
@@ -210,14 +214,21 @@ public struct NCSpan: NCElement {
       if s.height > t.height {
         t.height = s.height
       }
-      t.expandWidth += s.expandWidth
-      if s.expandWidthFreely > 0 {
-        t.expandWidthFreely += 1
+      if s.expandWidth {
+        t.childExpandWidth = true
+        if s.expandMaxWidth < 0 {
+          t.childExpandMaxWidth = -1
+        } else if t.childExpandMaxWidth >= 0 {
+          t.childExpandMaxWidth += s.expandMaxWidth
+        }
       }
-      if s.expandHeight > 0 {
-        t.expandHeight = 1
-        if s.expandHeightFreely > 0 {
-          t.expandHeightFreely += 1
+      if s.expandHeight {
+        t.childExpandHeight = true
+        if s.expandMaxHeight < 0 {
+          t.childExpandMaxHeight = -1
+        } else if t.childExpandMaxHeight >= 0 &&
+            s.expandMaxHeight > t.childExpandMaxHeight {
+          t.childExpandMaxHeight = s.expandMaxHeight
         }
       }
       if s.expandParentWidth {
@@ -253,19 +264,21 @@ public struct NCSpan: NCElement {
     if maxHeight >= 0 && t.height > maxHeight {
       t.height = maxHeight
     }
+    t.expandWidth = expandWidth
+    t.expandHeight = expandHeight
     if expandParentWidth {
       t.expandParentWidth = true
-      t.expandWidth += 1
+      t.expandWidth = true
     }
     if expandParentHeight {
       t.expandParentHeight = true
-      t.expandHeight = 1
+      t.expandHeight = true
     }
-    if expandWidth {
-      t.expandWidth += 1
+    if t.expandWidth {
+      t.expandMaxWidth = maxWidth
     }
-    if expandHeight {
-      t.expandHeight = 1
+    if t.expandHeight {
+      t.expandMaxHeight = maxHeight
     }
     return t
   }
@@ -274,6 +287,7 @@ public struct NCSpan: NCElement {
     var ap = drawBorder(x, y: y, size: size)
     var w = size.width - size.borderLeft - size.borderRight
     if w > 0 {
+      NC.pd("expand count \(size.expandWidth) \(size.expandParentWidth) \(expandWidth)")
       for s in size.children! {
         if s.width <= w {
           s.element!.draw(ap.x, y: ap.y, size: s)
@@ -356,16 +370,12 @@ public struct NCText: NCElement {
       t.height = maxHeight
     }
     if expandWidth {
-      t.expandWidth = 1
-      if width == -1 && maxWidth == -1 {
-        t.expandWidthFreely = 1
-      }
+      t.expandWidth = true
+      t.expandMaxWidth = maxWidth
     }
     if expandHeight {
-      t.expandHeight = 1
-      if height == -1 && maxHeight == -1 {
-        t.expandHeightFreely = 1
-      }
+      t.expandHeight = true
+      t.expandMaxHeight = maxHeight
     }
     if expandParentWidth {
       t.expandParentWidth = true
@@ -432,16 +442,21 @@ public struct NCDiv: NCElement {
         t.width = s.width
       }
       t.height += s.height
-      if s.expandWidth > 0 {
-        t.expandWidth = 1
-        if s.expandWidthFreely > 0 {
-          t.expandWidthFreely = 1
+      if s.expandWidth {
+        t.childExpandWidth = true
+        if s.expandMaxWidth < 0 {
+          t.childExpandMaxWidth = -1
+        } else if t.childExpandMaxWidth >= 0 &&
+            s.expandMaxWidth > t.childExpandMaxWidth {
+          t.childExpandMaxWidth = s.expandMaxWidth
         }
       }
-      if s.expandHeight > 0 {
-        t.expandHeight += 1
-        if s.expandHeightFreely > 0 {
-          t.expandHeightFreely += 1
+      if s.expandHeight {
+        t.childExpandHeight = true
+        if s.expandMaxHeight < 0 {
+          t.childExpandMaxHeight = -1
+        } else if t.childExpandMaxHeight >= 0 {
+          t.childExpandMaxHeight += s.expandMaxHeight
         }
       }
       if s.expandParentWidth {
@@ -471,11 +486,21 @@ public struct NCDiv: NCElement {
         t.height += 1
       }
     }
+    t.expandWidth = expandWidth
+    t.expandHeight = expandHeight
     if expandParentWidth {
       t.expandParentWidth = true
+      t.expandWidth = true
     }
     if expandParentHeight {
       t.expandParentHeight = true
+      t.expandHeight = true
+    }
+    if t.expandWidth {
+      t.expandMaxWidth = maxWidth
+    }
+    if t.expandHeight {
+      t.expandMaxHeight = maxHeight
     }
     return t
   }
@@ -498,19 +523,14 @@ public struct NCDiv: NCElement {
     }
     var ap = drawBorder(x, y: y, size: size)
     let w = size.width - size.borderLeft - size.borderRight
-    //NC.pd("\(inspect(size))")
     for s in size.children! {
-      if s.expandWidth > 0 {
-        NC.pd("repeat for good measure!")
-        var expandedSize = s
-        expandedSize.width = w
-        s.element!.draw(ap.x, y: ap.y, size: expandedSize)
-      } else if s.width <= w {
-        s.element!.draw(ap.x, y: ap.y, size: s)
+      let e = s.element!
+      if s.expandWidth || s.width > w {
+        var expandedOrClippedSize = s
+        expandedOrClippedSize.width = w
+        e.draw(ap.x, y: ap.y, size: expandedOrClippedSize)
       } else {
-        var clippedSize = s
-        clippedSize.width = w
-        s.element!.draw(ap.x, y: ap.y, size: clippedSize)
+        e.draw(ap.x, y: ap.y, size: s)
       }
       ap.y += s.height
     }
