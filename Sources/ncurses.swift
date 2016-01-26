@@ -79,12 +79,17 @@ public protocol NCElement {
   var expandHeight: Bool { get set }
   var expandParentWidth: Bool { get set }
   var expandParentHeight: Bool { get set }
+  var backgroundStrings: [String] { get set }
+
 
   func tellSize() -> TellSize
 
   func draw(x: Int, y: Int, size: TellSize)
 
   func drawBorder(x: Int, y: Int, size: TellSize) -> NCPoint
+
+  func drawBackground(x: Int, y: Int, width: Int, height: Int,
+      strings: [String])
 }
 
 
@@ -163,6 +168,45 @@ extension NCElement {
     return NCPoint(x: nx, y: ny)
   }
 
+  public func drawBackground(x: Int, y: Int, width: Int, height: Int,
+      strings: [String]) {
+    if strings.count == 0 || strings[0].isEmpty {
+      return
+    }
+    if strings.count == 1 {
+      let a = Array(strings[0].characters)
+      let len = a.count
+      if len == 1 {
+        let s = String(a[0])
+        let ei = y + height
+        let nx = Int32(x)
+        for i in y..<ei {
+          move(Int32(i), nx)
+          for _ in x..<x+width {
+            addstr(s)
+          }
+        }
+      } else {
+        let ex = x + width
+        let limit = ex - len + 1
+        let s = strings[0]
+        let nx = Int32(x)
+        let ey = y + height
+        for i in y..<ey {
+          move(Int32(i), nx)
+          var j = x
+          while j < limit {
+            addstr(s)
+            j += len
+          }
+          if j < ex {
+            addstr(s.characters.substring(0, endIndex: ex - j))
+          }
+        }
+      }
+    }
+  }
+
 }
 
 
@@ -183,6 +227,7 @@ public struct NCSpan: NCElement {
   public var expandHeight = false
   public var expandParentWidth = false
   public var expandParentHeight = false
+  public var backgroundStrings = [" "]
 
   public init() { }
 
@@ -200,7 +245,6 @@ public struct NCSpan: NCElement {
         children.append(v as! NCText)
       } else if v is NCSpan {
         children.append(v as! NCSpan)
-        NC.pd("spanning starts now")
       }
     }
   }
@@ -382,6 +426,7 @@ public struct NCText: NCElement {
   public var expandParentWidth = false
   public var expandParentHeight = false
   public var align = NCTextAlign.Left
+  public var backgroundStrings = [" "]
 
   public init() { }
 
@@ -446,6 +491,9 @@ public struct NCText: NCElement {
     let ap = drawBorder(x, y: y, size: size)
     let w = size.width - size.borderLeft - size.borderRight
     if w > 0 {
+      let contentHeight = size.height - size.borderTop - size.borderBottom
+      drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
+          strings: backgroundStrings)
       move(Int32(ap.y), Int32(ap.x))
       let len = size.count
       if w == len {
@@ -481,6 +529,7 @@ public struct NCDiv: NCElement {
   public var expandHeight = false
   public var expandParentWidth = false
   public var expandParentHeight = false
+  public var backgroundStrings = [" "]
 
   public init() { }
 
