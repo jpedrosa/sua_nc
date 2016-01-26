@@ -444,20 +444,19 @@ public struct NCText: NCElement {
 
   public func draw(x: Int, y: Int, size: TellSize) {
     let ap = drawBorder(x, y: y, size: size)
-    move(Int32(ap.y), Int32(ap.x))
     let w = size.width - size.borderLeft - size.borderRight
     if w > 0 {
+      move(Int32(ap.y), Int32(ap.x))
       let len = size.count
       if w == len {
         addstr(text)
-      } else if align == .Left {
-        addstr(String(text.characters.substring(0, endIndex: min(w, len))))
       } else {
         let z = String(text.characters.substring(0, endIndex: min(w, len)))
-        let n = align == .Right ? w - len : (w - len) / 2
-        let a = [UInt8](count: n, repeatedValue: 32)
-        let s = String.fromCharCodes(a) ?? ""
-        addstr("\(s)\(z)")
+        if align != .Left {
+          let n = align == .Right ? w - len : (w - len) / 2
+          move(Int32(ap.y), Int32(ap.x + n))
+        }
+        addstr(z)
       }
     }
   }
