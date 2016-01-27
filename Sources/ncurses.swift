@@ -770,6 +770,40 @@ public struct NCDiv: NCElement {
 }
 
 
+public typealias NCIntervalHandler = (timer: NCInterval) -> Void
+
+
+public class NCInterval {
+
+  public var id: Int
+  public var handler: NCIntervalHandler
+  public var value: Int // Milliseconds
+  public var millis: Int
+
+  init(id: Int, value: Int, millis: Int, handler: NCIntervalHandler) {
+    self.id = id
+    self.value = value
+    self.millis = millis
+    self.handler = handler
+  }
+
+  public func stop() {
+    if id != -1 {
+      NC.stopInterval(id)
+      id = -1
+    }
+  }
+
+  public func iterate(n: Int) {
+    if n - millis >= value {
+      self.millis = n
+      handler(timer: self)
+    }
+  }
+
+}
+
+
 public class NCImpl {
 
   public let NORMAL    = Int32(0)
@@ -785,6 +819,7 @@ public class NCImpl {
 
   public func pd(s: String) {
     _log.append(s)
+    invalidate()
   }
 
   public func printLogs() {
@@ -798,6 +833,43 @@ public class NCImpl {
     }
   }
 
+  var _genTimerId = 0
+  var _timers = [Int: NCInterval]()
+  var _timersCount = 0
+
+  public func doInterval(milliseconds: Int, fn: NCIntervalHandler)
+      -> NCInterval {
+    _genTimerId += 1
+    let n = _genTimerId
+    let o = NCInterval(id: n, value: milliseconds, millis: Tick.millis,
+        handler: fn)
+    _timers[n] = o
+    _timersCount += 1
+    return o
+  }
+
+  public func interval(seconds: Int, fn: NCIntervalHandler) -> NCInterval {
+    return doInterval(seconds * 1000, fn: fn)
+  }
+
+  public func interval(seconds: Double, fn: NCIntervalHandler) -> NCInterval {
+    return doInterval(Int(seconds * 1000), fn: fn)
+  }
+
+  public func stopInterval(id: Int) {
+    if let _ = _timers[id] {
+      _timersCount -= 1
+    }
+  }
+
+  public func iterateTimers(millis: Int) {
+    if _timersCount > 0 {
+      for (_, timer) in _timers {
+        timer.iterate(millis)
+      }
+    }
+  }
+
   public func exitWithError() {
     endwin()
     exit(1)
@@ -807,8 +879,22 @@ public class NCImpl {
     pd("mouse click \(KEY_MOUSE)")
   }
 
-  var invalidated = false
-  var mainDiv = NCDiv()
+  var _invalidated = false
+  var _lastInvalidatedAt = -1
+
+  public func invalidate() {
+    if !_invalidated && _lastInvalidatedAt < 0 {
+      _lastInvalidatedAt = Tick.millis
+    }
+  }
+
+  public func iterateInvalidation(millis: Int) {
+    if _lastInvalidatedAt >= 0 && millis - _lastInvalidatedAt >= 100 {
+      _invalidated = true
+    }
+  }
+
+  public var mainDiv = NCDiv()
 
   public func start(fn: (inout div: NCDiv) throws -> Void) throws {
     Signal.trap(Signal.INT, ncIntSignalHandler)
@@ -831,13 +917,18 @@ public class NCImpl {
 
     try fn(div: &mainDiv)
 
-    timeout(0)
+    timeout(100)
 
     while true {
       move(2, 2)
       drawAgain()
-      while !invalidated {
+      _invalidated = false
+      _lastInvalidatedAt = -1
+      while !_invalidated {
         var c = getch()
+        let millis = Tick.millis
+        iterateTimers(millis)
+        iterateInvalidation(millis)
         if c != -1 {
           if c == KEY_MOUSE {
             handleMouseClick()
@@ -851,7 +942,7 @@ public class NCImpl {
           // pd("\(inspect(a))")
           break
         }
-        IO.sleep(0.1)
+        //IO.sleep(0.1)
       }
     }
   }
