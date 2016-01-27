@@ -365,6 +365,10 @@ public struct NCSpan: NCElement {
       let contentHeight = size.height - size.borderTop - size.borderBottom
       drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
           strings: backgroundStrings)
+
+
+      ///////////////////////////// start /////////////////////////////////////
+      // This code served as a template for NCDiv's height expanding.
       var childrenList = size.children!
       var widthExpander = size.childWidthExpander
       if widthExpander > 0 {
@@ -398,10 +402,14 @@ public struct NCSpan: NCElement {
                 widthExpander -= 1
                 expanders[i] = false
               }
+              if availableWidth == 0 {
+                break
+              }
             }
           }
         }
         childrenList = changedChildren
+        ///////////////////////////// end /////////////////////////////////////
       }
 
       if align != .Left && size.expandWidth && availableWidth > 0 {
@@ -674,7 +682,54 @@ public struct NCDiv: NCElement {
     let contentHeight = size.height - size.borderTop - size.borderBottom
     drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
         strings: backgroundStrings)
-    for s in size.children! {
+
+    ///////////////////////////// start /////////////////////////////////////
+    // This code is similar to NCSpan's width, except that it deals with height.
+    var availableHeight = contentHeight - size.childrenHeight
+    var childrenList = size.children!
+    var heightExpander = size.childHeightExpander
+    if heightExpander > 0 {
+      var changedChildren = childrenList
+      let len = changedChildren.count
+      var expanders = [Bool](count: len, repeatedValue: false)
+      for i in 0..<len {
+        if childrenList[i].expandHeight {
+          expanders[i] = true
+        }
+      }
+      while availableHeight > 0 && heightExpander > 0 {
+        var heightShare = availableHeight
+        if heightExpander > 1 {
+          heightShare = availableHeight / heightExpander
+          if heightShare == 0 {
+            heightShare = 1
+          }
+        }
+        for i in 0..<len {
+          let c = changedChildren[i]
+          if expanders[i] {
+            if c.expandMaxHeight == -1 {
+              changedChildren[i].height += heightShare
+              availableHeight -= heightShare
+            } else if heightShare <= c.expandMaxHeight {
+              changedChildren[i].height += heightShare
+              changedChildren[i].expandMaxHeight -= heightShare
+              availableHeight -= heightShare
+            } else if c.expandMaxHeight == 0 {
+              heightExpander -= 1
+              expanders[i] = false
+            }
+            if availableHeight == 0 {
+              break
+            }
+          }
+        }
+      }
+      childrenList = changedChildren
+    }
+    /////////////////////////////  end  /////////////////////////////////////
+
+    for s in childrenList {
       let e = s.element!
       if s.expandWidth || s.width > w {
         var expandedOrClippedSize = s
