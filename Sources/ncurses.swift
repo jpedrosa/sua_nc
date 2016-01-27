@@ -562,7 +562,7 @@ public struct NCDiv: NCElement {
   public var borderBottom = false
   public var borderLeft = false
   public var borderType = NCBorderType.LightCurved
-  public var expandWidth = true
+  public var expandWidth = false
   public var expandHeight = false
   public var expandParentWidth = false
   public var expandParentHeight = false
@@ -809,6 +809,7 @@ public class NCImpl {
 
     assume_default_colors(-1, -1)
 
+    mainDiv.expandWidth = true
     mainDiv.expandHeight = true
 
     fn(div: &mainDiv)
