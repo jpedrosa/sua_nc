@@ -256,7 +256,7 @@ public struct NCSpan: NCElement {
   public var expandParentHeight = false
   public var backgroundStrings = [" "]
   public var align = NCTextAlign.Left
-  public var verticalAlign = NCVerticalAlign.Center
+  public var verticalAlign = NCVerticalAlign.Top
 
   public init() { }
 
