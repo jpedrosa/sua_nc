@@ -230,6 +230,13 @@ extension NCElement {
 }
 
 
+public enum NCVerticalAlign {
+  case Top
+  case Center
+  case Bottom
+}
+
+
 public struct NCSpan: NCElement {
   public var type = NCType.Span
   public var children = [NCElement]()
@@ -249,6 +256,7 @@ public struct NCSpan: NCElement {
   public var expandParentHeight = false
   public var backgroundStrings = [" "]
   public var align = NCTextAlign.Left
+  public var verticalAlign = NCVerticalAlign.Center
 
   public init() { }
 
@@ -427,19 +435,16 @@ public struct NCSpan: NCElement {
     }
 
     for s in childrenList {
-      if s.width <= w {
-        s.element!.draw(ap.x, y: ap.y, size: s)
-        ap.x += s.width
-        w -= s.width
-        if w <= 0 {
-          break
-        }
-      } else {
-        var clippedSize = s
-        clippedSize.width = w
-        clippedSize.element!.draw(ap.x, y: ap.y, size: clippedSize)
+      var candidateSize = s
+      if s.width > w {
+        candidateSize.width = w
+      }
+      s.element!.draw(ap.x, y: ap.y, size: candidateSize)
+      w -= s.width
+      if w <= 0 {
         break
       }
+      ap.x += s.width
     }
   }
 
