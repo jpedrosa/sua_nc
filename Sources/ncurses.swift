@@ -247,6 +247,7 @@ public struct NCSpan: NCElement {
   public var expandParentWidth = false
   public var expandParentHeight = false
   public var backgroundStrings = [" "]
+  public var align = NCTextAlign.Left
 
   public init() { }
 
@@ -359,6 +360,7 @@ public struct NCSpan: NCElement {
   public func draw(x: Int, y: Int, size: TellSize) {
     var ap = drawBorder(x, y: y, size: size)
     var w = size.width - size.borderLeft - size.borderRight
+    var availableWidth = w - size.childrenWidth
     if w > 0 {
       let contentHeight = size.height - size.borderTop - size.borderBottom
       drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
@@ -374,7 +376,6 @@ public struct NCSpan: NCElement {
             expanders[i] = true
           }
         }
-        var availableWidth = w - size.childrenWidth
         while availableWidth > 0 && widthExpander > 0 {
           var widthShare = availableWidth
           if widthExpander > 1 {
@@ -402,6 +403,11 @@ public struct NCSpan: NCElement {
         }
         childrenList = changedChildren
       }
+
+      if align != .Left && size.expandWidth && availableWidth > 0 {
+        ap.x += align == .Right ? availableWidth : availableWidth / 2
+      }
+
       for s in childrenList {
         if s.width <= w {
           s.element!.draw(ap.x, y: ap.y, size: s)
