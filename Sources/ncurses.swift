@@ -663,21 +663,6 @@ public struct NCDiv: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    //var ap = drawBorder(x, y: y, size: size)
-    for r in children {
-      NC.pd(inspect(r.tellSize()))
-      //r.draw()
-    }
-  }
-
-  public func mainDraw(x: Int, y: Int, width: Int, height: Int) {
-    var size = tellSize()
-    if expandWidth {
-      size.width = width
-    }
-    if expandHeight {
-      size.height = height
-    }
     let w = size.width - size.borderLeft - size.borderRight
     var contentHeight = size.height - size.borderTop - size.borderBottom
     if w <= 0 || contentHeight <= 0 {
@@ -748,6 +733,17 @@ public struct NCDiv: NCElement {
         break
       }
     }
+  }
+
+  public func mainDraw(x: Int, y: Int, width: Int, height: Int) {
+    var size = tellSize()
+    if expandWidth {
+      size.width = width
+    }
+    if expandHeight {
+      size.height = height
+    }
+    draw(x, y: y, size: size)
   }
 
 }
