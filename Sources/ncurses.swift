@@ -439,7 +439,13 @@ public struct NCSpan: NCElement {
       if s.width > w {
         candidateSize.width = w
       }
-      s.element!.draw(ap.x, y: ap.y, size: candidateSize)
+      if verticalAlign != .Top && s.height < contentHeight {
+        let yo = verticalAlign == .Center ? (contentHeight - s.height) / 2 :
+            contentHeight - s.height
+        s.element!.draw(ap.x, y: ap.y + yo, size: candidateSize)
+      } else {
+        s.element!.draw(ap.x, y: ap.y, size: candidateSize)
+      }
       w -= s.width
       if w <= 0 {
         break
