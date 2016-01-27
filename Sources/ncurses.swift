@@ -256,6 +256,12 @@ public struct NCSpan: NCElement {
     addArgs(args)
   }
 
+  public mutating func div(fn: (inout NCDiv) throws -> Void) throws {
+    var d = NCDiv()
+    try fn(&d)
+    children.append(d)
+  }
+
   public mutating func addArgs(args: [Any]) {
     for v in args {
       if v is String {
@@ -266,6 +272,8 @@ public struct NCSpan: NCElement {
         children.append(v as! NCText)
       } else if v is NCSpan {
         children.append(v as! NCSpan)
+      } else if v is NCDiv {
+        children.append(v as! NCDiv)
       }
     }
   }
@@ -571,11 +579,12 @@ public struct NCDiv: NCElement {
 
   public init() { }
 
-  public mutating func span(args: Any..., fn: ((inout NCSpan) -> Void)? = nil) {
+  public mutating func span(args: Any...,
+      fn: ((inout NCSpan) throws -> Void)? = nil) throws {
     var span = NCSpan()
     span.addArgs(args)
     if let af = fn {
-      af(&span)
+      try af(&span)
     }
     children.append(span)
   }
@@ -663,6 +672,7 @@ public struct NCDiv: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
+    NC.pd("div draw \(size.childrenWidth)")
     let w = size.width - size.borderLeft - size.borderRight
     var contentHeight = size.height - size.borderTop - size.borderBottom
     if w <= 0 || contentHeight <= 0 {
@@ -789,7 +799,7 @@ public class NCImpl {
   var invalidated = false
   var mainDiv = NCDiv()
 
-  public func start(fn: (inout div: NCDiv) -> Void) {
+  public func start(fn: (inout div: NCDiv) throws -> Void) throws {
     Signal.trap(Signal.INT, ncIntSignalHandler)
     Signal.trap(SIGWINCH, ncWinchSignalHandler)
 
@@ -808,7 +818,7 @@ public class NCImpl {
     mainDiv.expandWidth = true
     mainDiv.expandHeight = true
 
-    fn(div: &mainDiv)
+    try fn(div: &mainDiv)
 
     timeout(0)
 
