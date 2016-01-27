@@ -170,6 +170,7 @@ extension NCElement {
 
   public func drawBackground(x: Int, y: Int, width: Int, height: Int,
       strings: [String]) {
+    assert(width >= 0 && height >= 0)
     let blen = strings.count
     if blen == 0 || strings[0].isEmpty {
       return
@@ -358,78 +359,78 @@ public struct NCSpan: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    var ap = drawBorder(x, y: y, size: size)
     var w = size.width - size.borderLeft - size.borderRight
+    let contentHeight = size.height - size.borderTop - size.borderBottom
+    if w <= 0 || contentHeight <= 0 {
+      return
+    }
+    var ap = drawBorder(x, y: y, size: size)
     var availableWidth = w - size.childrenWidth
-    if w > 0 {
-      let contentHeight = size.height - size.borderTop - size.borderBottom
-      drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
-          strings: backgroundStrings)
+    drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
+        strings: backgroundStrings)
 
-
-      ///////////////////////////// start /////////////////////////////////////
-      // This code served as a template for NCDiv's height expanding.
-      var childrenList = size.children!
-      var widthExpander = size.childWidthExpander
-      if widthExpander > 0 {
-        var changedChildren = childrenList
-        let len = changedChildren.count
-        var expanders = [Bool](count: len, repeatedValue: false)
+    ///////////////////////////// start /////////////////////////////////////
+    // This code served as a template for NCDiv's height expanding.
+    var childrenList = size.children!
+    var widthExpander = size.childWidthExpander
+    if widthExpander > 0 {
+      var changedChildren = childrenList
+      let len = changedChildren.count
+      var expanders = [Bool](count: len, repeatedValue: false)
+      for i in 0..<len {
+        if childrenList[i].expandWidth {
+          expanders[i] = true
+        }
+      }
+      while availableWidth > 0 && widthExpander > 0 {
+        var widthShare = availableWidth
+        if widthExpander > 1 {
+          widthShare = availableWidth / widthExpander
+          if widthShare == 0 {
+            widthShare = 1
+          }
+        }
         for i in 0..<len {
-          if childrenList[i].expandWidth {
-            expanders[i] = true
-          }
-        }
-        while availableWidth > 0 && widthExpander > 0 {
-          var widthShare = availableWidth
-          if widthExpander > 1 {
-            widthShare = availableWidth / widthExpander
-            if widthShare == 0 {
-              widthShare = 1
+          let c = changedChildren[i]
+          if expanders[i] {
+            if c.expandMaxWidth == -1 {
+              changedChildren[i].width += widthShare
+              availableWidth -= widthShare
+            } else if widthShare <= c.expandMaxWidth {
+              changedChildren[i].width += widthShare
+              changedChildren[i].expandMaxWidth -= widthShare
+              availableWidth -= widthShare
+            } else if c.expandMaxWidth == 0 {
+              widthExpander -= 1
+              expanders[i] = false
             }
-          }
-          for i in 0..<len {
-            let c = changedChildren[i]
-            if expanders[i] {
-              if c.expandMaxWidth == -1 {
-                changedChildren[i].width += widthShare
-                availableWidth -= widthShare
-              } else if widthShare <= c.expandMaxWidth {
-                changedChildren[i].width += widthShare
-                changedChildren[i].expandMaxWidth -= widthShare
-                availableWidth -= widthShare
-              } else if c.expandMaxWidth == 0 {
-                widthExpander -= 1
-                expanders[i] = false
-              }
-              if availableWidth == 0 {
-                break
-              }
+            if availableWidth == 0 {
+              break
             }
           }
         }
-        childrenList = changedChildren
-        ///////////////////////////// end /////////////////////////////////////
       }
+      childrenList = changedChildren
+      ///////////////////////////// end /////////////////////////////////////
+    }
 
-      if align != .Left && size.expandWidth && availableWidth > 0 {
-        ap.x += align == .Right ? availableWidth : availableWidth / 2
-      }
+    if align != .Left && size.expandWidth && availableWidth > 0 {
+      ap.x += align == .Right ? availableWidth : availableWidth / 2
+    }
 
-      for s in childrenList {
-        if s.width <= w {
-          s.element!.draw(ap.x, y: ap.y, size: s)
-          ap.x += s.width
-          w -= s.width
-          if w <= 0 {
-            break
-          }
-        } else {
-          var clippedSize = s
-          clippedSize.width = w
-          clippedSize.element!.draw(ap.x, y: ap.y, size: clippedSize)
+    for s in childrenList {
+      if s.width <= w {
+        s.element!.draw(ap.x, y: ap.y, size: s)
+        ap.x += s.width
+        w -= s.width
+        if w <= 0 {
           break
         }
+      } else {
+        var clippedSize = s
+        clippedSize.width = w
+        clippedSize.element!.draw(ap.x, y: ap.y, size: clippedSize)
+        break
       }
     }
   }
@@ -677,9 +678,12 @@ public struct NCDiv: NCElement {
     if expandHeight {
       size.height = height
     }
-    var ap = drawBorder(x, y: y, size: size)
     let w = size.width - size.borderLeft - size.borderRight
-    let contentHeight = size.height - size.borderTop - size.borderBottom
+    var contentHeight = size.height - size.borderTop - size.borderBottom
+    if w <= 0 || contentHeight <= 0 {
+      return
+    }
+    var ap = drawBorder(x, y: y, size: size)
     drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
         strings: backgroundStrings)
 
@@ -730,15 +734,19 @@ public struct NCDiv: NCElement {
     /////////////////////////////  end  /////////////////////////////////////
 
     for s in childrenList {
-      let e = s.element!
-      if s.expandWidth || s.width > w {
-        var expandedOrClippedSize = s
-        expandedOrClippedSize.width = w
-        e.draw(ap.x, y: ap.y, size: expandedOrClippedSize)
-      } else {
-        e.draw(ap.x, y: ap.y, size: s)
+      var candidateSize = s
+      if s.height > contentHeight {
+        candidateSize.height = contentHeight
       }
+      if s.expandWidth || s.width > w {
+        candidateSize.width = w
+      }
+      s.element!.draw(ap.x, y: ap.y, size: candidateSize)
       ap.y += s.height
+      contentHeight -= s.height
+      if contentHeight <= 0 {
+        break
+      }
     }
   }
 
