@@ -170,28 +170,26 @@ extension NCElement {
 
   public func drawBackground(x: Int, y: Int, width: Int, height: Int,
       strings: [String]) {
-    if strings.count == 0 || strings[0].isEmpty {
+    let blen = strings.count
+    if blen == 0 || strings[0].isEmpty {
       return
     }
-    if strings.count == 1 {
+    let ey = y + height
+    let ex = x + width
+    let nx = Int32(x)
+    if blen == 1 {
       let a = Array(strings[0].characters)
       let len = a.count
+      let s = strings[0]
       if len == 1 {
-        let s = String(a[0])
-        let ei = y + height
-        let nx = Int32(x)
-        for i in y..<ei {
+        for i in y..<ey {
           move(Int32(i), nx)
-          for _ in x..<x+width {
+          for _ in x..<ex {
             addstr(s)
           }
         }
       } else {
-        let ex = x + width
         let limit = ex - len + 1
-        let s = strings[0]
-        let nx = Int32(x)
-        let ey = y + height
         for i in y..<ey {
           move(Int32(i), nx)
           var j = x
@@ -202,6 +200,27 @@ extension NCElement {
           if j < ex {
             addstr(s.characters.substring(0, endIndex: ex - j))
           }
+        }
+      }
+    } else {
+      var si = 0
+      let blen = strings.count
+      for i in y..<ey {
+        let s = strings[si]
+        let slen = s.characters.count
+        let limit = ex - slen + 1
+        move(Int32(i), nx)
+        var j = x
+        while j < limit {
+          addstr(s)
+          j += slen
+        }
+        if j < ex {
+          addstr(s.characters.substring(0, endIndex: ex - j))
+        }
+        si += 1
+        if si >= blen {
+          si = 0
         }
       }
     }
@@ -341,6 +360,9 @@ public struct NCSpan: NCElement {
     var ap = drawBorder(x, y: y, size: size)
     var w = size.width - size.borderLeft - size.borderRight
     if w > 0 {
+      let contentHeight = size.height - size.borderTop - size.borderBottom
+      drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
+          strings: backgroundStrings)
       var childrenList = size.children!
       var widthExpander = size.childWidthExpander
       if widthExpander > 0 {
@@ -531,6 +553,7 @@ public struct NCDiv: NCElement {
   public var expandParentHeight = false
   public var backgroundStrings = [" "]
 
+
   public init() { }
 
   public mutating func span(args: Any..., fn: ((inout NCSpan) -> Void)? = nil) {
@@ -642,6 +665,9 @@ public struct NCDiv: NCElement {
     }
     var ap = drawBorder(x, y: y, size: size)
     let w = size.width - size.borderLeft - size.borderRight
+    let contentHeight = size.height - size.borderTop - size.borderBottom
+    drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
+        strings: backgroundStrings)
     for s in size.children! {
       let e = s.element!
       if s.expandWidth || s.width > w {
