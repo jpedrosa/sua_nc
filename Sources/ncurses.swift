@@ -958,6 +958,12 @@ public class NCImpl {
   }
 
   public func output(string: String) {
+    // **Note** It seems that anything that is output is causing NCurses to
+    // crash rather quickly when resizing the window quickly which would
+    // refresh its content also quickly.
+    // When the following line is commented out though, it does not seem to
+    // crash as quickly. :-)
+    // I've run out of ideas for now to make this work.
     addstr(string)
   }
 
