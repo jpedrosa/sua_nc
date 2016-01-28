@@ -109,17 +109,17 @@ extension NCElement {
       var ei = w
       if size.borderRight > 0 {
         move(Int32(ny), Int32(nx + w - 1))
-        addstr("╮")
+        NC.output("╮")
         ei -= 1
       }
       move(Int32(ny), Int32(nx))
       if size.borderLeft > 0 {
-        addstr("╭")
+        NC.output("╭")
         si += 1
       }
       if si < ei {
         for _ in si..<ei {
-          addstr("─")
+          NC.output("─")
         }
       }
       ny += 1
@@ -131,17 +131,17 @@ extension NCElement {
       var ei = w
       if size.borderRight > 0 {
         move(Int32(ny + borderHeight), Int32(nx + w - 1))
-        addstr("╯")
+        NC.output("╯")
         ei -= 1
       }
       move(Int32(ny + borderHeight), Int32(nx))
       if size.borderLeft > 0 {
-        addstr("╰")
+        NC.output("╰")
         si += 1
       }
       if si < ei {
         for _ in si..<ei {
-          addstr("─")
+          NC.output("─")
         }
       }
     }
@@ -151,7 +151,7 @@ extension NCElement {
       if ny < ei {
         for i in ny..<ei {
           move(Int32(i), Int32(bx))
-          addstr("│")
+          NC.output("│")
         }
       }
     }
@@ -160,7 +160,7 @@ extension NCElement {
       if ny < ei {
         for i in ny..<ei {
           move(Int32(i), Int32(nx))
-          addstr("│")
+          NC.output("│")
         }
       }
       nx += 1
@@ -186,7 +186,7 @@ extension NCElement {
         for i in y..<ey {
           move(Int32(i), nx)
           for _ in x..<ex {
-            addstr(s)
+            NC.output(s)
           }
         }
       } else {
@@ -195,11 +195,11 @@ extension NCElement {
           move(Int32(i), nx)
           var j = x
           while j < limit {
-            addstr(s)
+            NC.output(s)
             j += len
           }
           if j < ex {
-            addstr(s.characters.substring(0, endIndex: ex - j))
+            NC.output(s.characters.substring(0, endIndex: ex - j))
           }
         }
       }
@@ -213,11 +213,11 @@ extension NCElement {
         move(Int32(i), nx)
         var j = x
         while j < limit {
-          addstr(s)
+          NC.output(s)
           j += slen
         }
         if j < ex {
-          addstr(s.characters.substring(0, endIndex: ex - j))
+          NC.output(s.characters.substring(0, endIndex: ex - j))
         }
         si += 1
         if si >= blen {
@@ -555,14 +555,14 @@ public struct NCText: NCElement {
     move(Int32(ap.y), Int32(ap.x))
     let len = size.count
     if w == len {
-      addstr(text)
+      NC.output(text)
     } else {
       let z = String(text.characters.substring(0, endIndex: min(w, len)))
       if align != .Left {
         let n = align == .Right ? w - len : (w - len) / 2
         move(Int32(ap.y), Int32(ap.x + n))
       }
-      addstr(z)
+      NC.output(z)
     }
   }
 
@@ -829,7 +829,7 @@ public class NCImpl {
     var j = 0
     for i in si..<len {
       move(debugy + j, 80)
-      addstr(_log[i])
+      NC.output(_log[i])
       j += 1
     }
   }
@@ -955,6 +955,10 @@ public class NCImpl {
     mainDiv.mainDraw(0, y: 0, width: w, height: h)
     printLogs()
     refresh()
+  }
+
+  public func output(string: String) {
+    addstr(string)
   }
 
 }
