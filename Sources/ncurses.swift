@@ -544,24 +544,25 @@ public struct NCText: NCElement {
   }
 
   public func draw(x: Int, y: Int, size: TellSize) {
-    let ap = drawBorder(x, y: y, size: size)
     let w = size.width - size.borderLeft - size.borderRight
-    if w > 0 {
-      let contentHeight = size.height - size.borderTop - size.borderBottom
-      drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
-          strings: backgroundStrings)
-      move(Int32(ap.y), Int32(ap.x))
-      let len = size.count
-      if w == len {
-        addstr(text)
-      } else {
-        let z = String(text.characters.substring(0, endIndex: min(w, len)))
-        if align != .Left {
-          let n = align == .Right ? w - len : (w - len) / 2
-          move(Int32(ap.y), Int32(ap.x + n))
-        }
-        addstr(z)
+    let contentHeight = size.height - size.borderTop - size.borderBottom
+    if w <= 0 || contentHeight <= 0 {
+      return
+    }
+    let ap = drawBorder(x, y: y, size: size)
+    drawBackground(ap.x, y: ap.y, width: w, height: contentHeight,
+        strings: backgroundStrings)
+    move(Int32(ap.y), Int32(ap.x))
+    let len = size.count
+    if w == len {
+      addstr(text)
+    } else {
+      let z = String(text.characters.substring(0, endIndex: min(w, len)))
+      if align != .Left {
+        let n = align == .Right ? w - len : (w - len) / 2
+        move(Int32(ap.y), Int32(ap.x + n))
       }
+      addstr(z)
     }
   }
 
